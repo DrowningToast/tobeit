@@ -10,6 +10,12 @@ const app = express();
 const PORT = process.env.port ?? 3000; //
 const TOKEN = process.env.access;
 
+const { LineClient } = require("messaging-api-line");
+
+const client = new LineClient({
+  accessToken: TOKEN,
+});
+
 app.use(express.json());
 app.use(
   express.urlencoded({
@@ -26,53 +32,15 @@ app.post("/webhook", (req, res) => {
 
   // ============= เพิ่มเข้ามาใหม่
   if (req.body.events?.[0]?.type === "message") {
-    const text = req.body.events[0].message.text;
+    const text = req.body.events[0].message.text; // ข้อความที่ส่งมา
+    const replyToken = req.body.events[0].replyToken; // replyToken ที่ Line ส่งมา
 
-    // Message data, must be stringified
-    const dataString = JSON.stringify({
-      replyToken: req.body.events[0].replyToken,
-      messages: [
-        {
-          type: "text",
-          text: "Hello, user",
-        },
-        {
-          type: "text",
-          text: "May I help you?",
-        },
-      ],
-    });
-
-    // Request header
-    const headers = {
-      "Content-Type": "application/json",
-      Authorization: "Bearer " + TOKEN,
-    };
-
-    // Options to pass into the request
-    const webhookOptions = {
-      hostname: "api.line.me",
-      path: "/v2/bot/message/reply",
-      method: "POST",
-      headers: headers,
-      body: dataString,
-    };
-
-    // Define request
-    const request = https.request(webhookOptions, (res) => {
-      res.on("data", (d) => {
-        process.stdout.write(d);
-      });
-    });
-
-    // Handle error
-    request.on("error", (err) => {
-      console.error(err);
-    });
-
-    // Send data
-    request.write(dataString);
-    request.end();
+    client.reply(replyToken, [
+      {
+        type: "text",
+        text: "Hello! you just send the message " + text,
+      },
+    ]);
   } else {
     res.send("Unknown action");
   }
